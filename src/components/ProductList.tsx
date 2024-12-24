@@ -3,18 +3,23 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { getProducts } from '../lib/products/queries';
 import { deleteProduct } from '../lib/products/mutations';
 import type { Product } from '../lib/products/types';
+import type { PaginatedResponse } from '../lib/types/pagination';
 import toast from 'react-hot-toast';
 import ProductForm from './ProductForm';
+import Pagination from './Pagination';
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [metadata, setMetadata] = useState<PaginatedResponse<Product>['metadata'] | null>(null);
 
-  const loadProducts = async () => {
+  const loadProducts = async (page: number) => {
     try {
-      const data = await getProducts();
-      setProducts(data);
+      const response = await getProducts({ page, limit: 10 });
+      setProducts(response.data);
+      setMetadata(response.metadata);
     } catch (error) {
       toast.error('Erro ao carregar produtos');
     } finally {
@@ -23,15 +28,15 @@ export default function ProductList() {
   };
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    loadProducts(currentPage);
+  }, [currentPage]);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
       try {
         await deleteProduct(id);
         toast.success('Produto excluído com sucesso!');
-        loadProducts();
+        loadProducts(currentPage);
       } catch (error) {
         toast.error('Erro ao excluir produto');
       }
@@ -88,7 +93,10 @@ export default function ProductList() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                  R$ {product.price.toFixed(2)}
+                  {new Intl.NumberFormat('pt-AO', {
+                    style: 'currency',
+                    currency: 'AOA'
+                  }).format(product.price)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
@@ -110,11 +118,22 @@ export default function ProductList() {
         </table>
       </div>
 
+      {metadata && metadata.totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={metadata.totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
+
       {editingProduct && (
         <ProductForm
           product={editingProduct}
           onClose={() => setEditingProduct(null)}
-          onSuccess={loadProducts}
+          onSuccess={() => {
+            loadProducts(currentPage);
+            setEditingProduct(null);
+          }}
         />
       )}
     </>

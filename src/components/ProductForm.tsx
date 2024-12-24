@@ -31,11 +31,16 @@ export default function ProductForm({
     setLoading(true);
 
     try {
+      if (!formData.name || !formData.price) {
+        throw new Error('Nome e preço são obrigatórios');
+      }
+
       const productData = {
         name: formData.name,
         description: formData.description,
         price: Number(formData.price),
         image_urls: previews,
+        images: images,
       };
 
       if (product?.id) {
@@ -129,7 +134,7 @@ export default function ProductForm({
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">R$</span>
+                  <span className="text-gray-500 sm:text-sm">Kz</span>
                 </div>
                 <input
                   type="number"

@@ -2,28 +2,7 @@ import { supabase } from '../supabase';
 import { getStoreId } from './queries';
 import type { Product } from './types';
 import { createActivity } from '../activity';
-
-export async function uploadProductImages(files: File[]) {
-  const uploads = files.map(async (file) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('products')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('products')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  });
-
-  return Promise.all(uploads);
-}
+import { uploadMultipleImages } from '../storage/products';
 
 export async function createProduct(
   product: Omit<Product, 'id' | 'created_at' | 'store_id' | 'user_id'> & { images: File[] }
@@ -36,7 +15,7 @@ export async function createProduct(
   const storeId = await getStoreId();
 
   // Upload images first
-  const imageUrls = await uploadProductImages(product.images);
+  const imageUrls = await uploadMultipleImages(product.images);
 
   const productData = {
     name: product.name,
@@ -85,7 +64,7 @@ export async function updateProduct(
 
   // Upload new images if any
   if (product.newImages && product.newImages.length > 0) {
-    const newImageUrls = await uploadProductImages(product.newImages);
+    const newImageUrls = await uploadMultipleImages(product.newImages);
     imageUrls = [...imageUrls, ...newImageUrls];
   }
 

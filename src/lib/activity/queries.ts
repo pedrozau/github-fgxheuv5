@@ -1,8 +1,8 @@
 import { supabase } from '../supabase';
 import type { PaginationParams, PaginatedResponse } from '../types/pagination';
-import type { Product } from './types';
+import type { Activity } from './types';
 
-export async function getStoreId() {
+export async function getActivities({ page = 1, limit = 10 }: PaginationParams): Promise<PaginatedResponse<Activity>> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
@@ -13,24 +13,20 @@ export async function getStoreId() {
     .single();
 
   if (!store) throw new Error('Store not found');
-  return store.id;
-}
 
-export async function getProducts({ page = 1, limit = 10 }: PaginationParams): Promise<PaginatedResponse<Product>> {
-  const storeId = await getStoreId();
   const offset = (page - 1) * limit;
 
   // Get total count
   const { count } = await supabase
-    .from('products')
+    .from('activities')
     .select('*', { count: 'exact', head: true })
-    .eq('store_id', storeId);
+    .eq('store_id', store.id);
 
   // Get paginated data
   const { data, error } = await supabase
-    .from('products')
+    .from('activities')
     .select('*')
-    .eq('store_id', storeId)
+    .eq('store_id', store.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
